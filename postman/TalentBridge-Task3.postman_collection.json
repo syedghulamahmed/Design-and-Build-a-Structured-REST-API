@@ -1,0 +1,27 @@
+{
+  "info": {
+    "name": "TalentBridge Task 3 REST API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Demonstrates every TalentBridge API endpoint, including validation and application status transitions."
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:4000/api"},
+    {"key": "internshipId", "value": "a2c4b9a6-9f7e-4d25-9e55-9f9e6f7f1011"},
+    {"key": "applicationId", "value": "replace-after-create"},
+    {"key": "createdInternshipId", "value": "replace-after-create"}
+  ],
+  "item": [
+    {"name":"Health","request":{"method":"GET","url":"http://localhost:4000/health"}},
+    {"name":"List internships","request":{"method":"GET","url":"{{baseUrl}}/internships?page=1&limit=9&location=Lahore%2C%20Pakistan&sortBy=title&sortOrder=asc"}},
+    {"name":"Get internship","request":{"method":"GET","url":"{{baseUrl}}/internships/{{internshipId}}"}},
+    {"name":"Create internship","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Idempotency-Key","value":"task3-create-internship-001"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"QA Automation Intern\",\n  \"company\": \"SignalWorks\",\n  \"location\": \"Remote\",\n  \"category\": \"Engineering\",\n  \"type\": \"Remote\",\n  \"duration\": \"12 weeks\",\n  \"stipend\": \"PKR 42,000 / month\",\n  \"tags\": [\"Playwright\", \"TypeScript\"],\n  \"description\": \"Build automated checks for web products and learn how engineering teams protect release quality.\",\n  \"responsibilities\": [\"Write browser tests\", \"Review defects\"],\n  \"requirements\": [\"JavaScript basics\", \"Attention to detail\"]\n}"},"url":"{{baseUrl}}/internships"},"event":[{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.collectionVariables.set(\"createdInternshipId\", body.data.id);"]}}]},
+    {"name":"Replace internship","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Frontend Engineering Intern — Updated\",\n  \"company\": \"Northstar Labs\",\n  \"location\": \"Lahore, Pakistan\",\n  \"category\": \"Engineering\",\n  \"type\": \"Hybrid\",\n  \"duration\": \"14 weeks\",\n  \"stipend\": \"PKR 48,000 / month\",\n  \"tags\": [\"React\", \"TypeScript\"],\n  \"description\": \"Work with product engineers to ship accessible responsive interfaces and improve the developer experience.\",\n  \"responsibilities\": [\"Build React components\", \"Review pull requests\"],\n  \"requirements\": [\"React fundamentals\", \"Git workflow familiarity\"]\n}"},"url":"{{baseUrl}}/internships/{{internshipId}}"}},
+    {"name":"List applications","request":{"method":"GET","url":"{{baseUrl}}/internships/{{internshipId}}/applications"}},
+    {"name":"Submit application","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"},{"key":"Idempotency-Key","value":"task3-application-001"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Ayesha Khan\",\n  \"email\": \"ayesha@example.com\",\n  \"coverNote\": \"I am excited to contribute to accessible product interfaces and grow my React engineering skills with your team.\"\n}"},"url":"{{baseUrl}}/internships/{{internshipId}}/applications"},"event":[{"listen":"test","script":{"type":"text/javascript","exec":["const body = pm.response.json();","pm.collectionVariables.set(\"applicationId\", body.data.id);"]}}]},
+    {"name":"Get application","request":{"method":"GET","url":"{{baseUrl}}/applications/{{applicationId}}"}},
+    {"name":"Advance application to under_review","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"status\":\"under_review\"}"},"url":"{{baseUrl}}/applications/{{applicationId}}/status"}},
+    {"name":"Advance application to accepted","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"status\":\"accepted\"}"},"url":"{{baseUrl}}/applications/{{applicationId}}/status"}},
+    {"name":"Illegal transition — accepted to submitted (expect 409)","request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"status\":\"submitted\"}"},"url":"{{baseUrl}}/applications/{{applicationId}}/status"}},
+    {"name":"Delete internship","request":{"method":"DELETE","url":"{{baseUrl}}/internships/{{createdInternshipId}}"}}
+  ]
+}
