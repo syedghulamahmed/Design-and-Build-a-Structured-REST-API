@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: TalentBridge Internship API
+  version: 1.0.0
+  description: Layered REST API for internship postings and student applications.
+servers:
+  - url: http://localhost:4000/api
+paths:
+  /internships:
+    get:
+      summary: List internships
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 9 } }
+        - { name: location, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: sortBy, in: query, schema: { type: string, enum: [createdAt, title, company, location], default: createdAt } }
+        - { name: sortOrder, in: query, schema: { type: string, enum: [asc, desc], default: desc } }
+      responses:
+        '200': { description: Paginated internship collection }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    post:
+      summary: Create an internship
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InternshipInput' }
+      responses:
+        '201': { description: Internship created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /internships/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+    get:
+      summary: Get an internship
+      responses:
+        '200': { description: Internship returned }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    put:
+      summary: Replace an internship
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InternshipInput' }
+      responses:
+        '200': { description: Internship updated }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      summary: Delete an internship
+      responses:
+        '204': { description: Internship deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /internships/{internshipId}/applications:
+    parameters:
+      - { name: internshipId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: List applications for an internship
+      responses:
+        '200': { description: Applications returned }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      summary: Submit an application
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApplicationInput' }
+      responses:
+        '201': { description: Application created with submitted status }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /applications/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+    get:
+      summary: Get an application
+      responses:
+        '200': { description: Application returned }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /applications/{id}/status:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+    patch:
+      summary: Update application status
+      description: Allowed transitions are submitted → under_review → accepted/rejected. Terminal states cannot transition again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [submitted, under_review, accepted, rejected]
+      responses:
+        '200': { description: Application status updated }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema: { type: string, maxLength: 255 }
+  schemas:
+    InternshipInput:
+      type: object
+      required: [title, company, location, category, type, duration, stipend, tags, description, responsibilities, requirements]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 120 }
+        company: { type: string, minLength: 2, maxLength: 100 }
+        location: { type: string, minLength: 2, maxLength: 100 }
+        category: { type: string, minLength: 2, maxLength: 80 }
+        type: { type: string, minLength: 2, maxLength: 50 }
+        duration: { type: string, minLength: 2, maxLength: 50 }
+        stipend: { type: string, minLength: 2, maxLength: 80 }
+        tags: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        description: { type: string, minLength: 30, maxLength: 3000 }
+        responsibilities: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+        requirements: { type: array, minItems: 1, maxItems: 20, items: { type: string } }
+    ApplicationInput:
+      type: object
+      required: [name, email, coverNote]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        coverNote: { type: string, minLength: 30, maxLength: 3000 }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: {}
+  responses:
+    ValidationError:
+      description: Request failed validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Business rule conflict
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
